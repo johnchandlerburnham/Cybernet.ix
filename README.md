@@ -62,9 +62,15 @@ model. These are proposed configurations, not trained releases.
 - [Portable inference](docs/portable-inference.md): bit-level semantics,
   backend equivalence, and the PTXLean/Compilatr.ix compilation direction.
 - [Source notes](docs/research-notes.md): inspected foundations and remaining gaps.
+- [Development](docs/development.md): the Lean/Rust FFI scaffold, Nix packages,
+  and build checks.
 
-Status: design sketch, September 2026. No Cybernet.ix implementation or proofs
-have been built yet. The [earlier 120B model sketch](verified-120b-v2.md) is
+Start development with `nix develop`, then `lake build` and `lake test`.
+`nix flake check` builds and checks the linked Lean/Rust scaffold.
+
+Status: architecture design and initial build scaffold, September 2026.
+Model, harness, and certification implementations remain to be developed.
+The [earlier 120B model sketch](verified-120b-v2.md) is
 retained as research material; its arithmetic, scale, and assurance claims are
 not adopted as requirements.
 

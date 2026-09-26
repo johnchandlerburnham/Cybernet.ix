@@ -1,0 +1,23 @@
+[workspace]
+members = ["crates/ffi"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+[workspace.dependencies]
+lean-ffi = { git = "https://github.com/argumentcomputer/lean-ffi.git", rev = "93c7e52952ae94546be08313f4ff3922984c84d5" }
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[workspace.lints.clippy]
+all = "warn"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+lto = "thin"

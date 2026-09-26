@@ -1,0 +1,14 @@
+[package]
+name = "cybernetix-ffi"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lib]
+crate-type = ["rlib", "staticlib"]
+
+[dependencies]
+lean-ffi.workspace = true
+
+[lints]
+workspace = true
