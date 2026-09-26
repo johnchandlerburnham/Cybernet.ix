@@ -1,4 +1,6 @@
 import CybernetixProofs.Gradient
 import CybernetixProofs.Exact
 import CybernetixProofs.Binary32
+import CybernetixProofs.Tensor
+import CybernetixProofs.LinearClassifier
 import CybernetixProofs.Audit

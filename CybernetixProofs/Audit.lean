@@ -1,5 +1,7 @@
 import CybernetixProofs.Exact
 import CybernetixProofs.Binary32
+import CybernetixProofs.Tensor
+import CybernetixProofs.LinearClassifier
 import Lean.Util.CollectAxioms
 
 /-! Fail the build if a release theorem depends on an unapproved axiom.
@@ -28,11 +30,21 @@ run_cmd do
     ``Cybernetix.Numeric.Binary32.Proofs.toy_prefixes_exact,
     ``Cybernetix.Numeric.Binary32.Proofs.toy_final_words,
     ``Cybernetix.Numeric.Binary32.Proofs.toy_final_bytes,
-    ``Cybernetix.Numeric.Binary32.Proofs.reassociation_changes_answer]
+    ``Cybernetix.Numeric.Binary32.Proofs.reassociation_changes_answer,
+    ``Cybernetix.Tensor.assembleWord_wordByte,
+    ``Cybernetix.Tensor.Buffer.getWord_ofFn,
+    ``Cybernetix.Tensor.Buffer.view_ofFn,
+    ``Cybernetix.Tensor.Buffer.ofBytes_roundtrip,
+    ``Cybernetix.Tensor.Buffer.ofBytes_reject,
+    ``Cybernetix.Numeric.Reduction.depth_covers,
+    ``Cybernetix.Numeric.Reduction.depth_minimal,
+    ``Cybernetix.Numeric.Reduction.native_model,
+    ``Cybernetix.Model.LinearClassifier.forward_eq_reference,
+    ``Cybernetix.Model.LinearClassifier.argmax_correct]
   for name in roots do
     let _ ← getConstInfo name
     let axioms ← collectAxioms name
     for ax in axioms do
       unless allowed.contains ax do
         throwError "{name} depends on unapproved axiom {ax}"
-  logInfo m!"SGD axiom audit passed for {roots.size} theorem roots."
+  logInfo m!"Cybernet.ix axiom audit passed for {roots.size} theorem roots."
