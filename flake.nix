@@ -68,6 +68,67 @@
           );
 
           lake2nix = pkgs.callPackage lean4-nix.lake { inherit lean; };
+          # Provide locked dependency sources, then build only the modules that
+          # our targets import. Building Mathlib's entire shared/static library
+          # would compile thousands of unrelated modules for this small proof.
+          lakeDeps = builtins.listToAttrs (
+            map (dependency: {
+              inherit (dependency) name;
+              value =
+                let
+                  repository = builtins.fetchGit {
+                    inherit (dependency) url rev;
+                    shallow = true;
+                  };
+                in
+                if dependency.subDir == null then repository else "${repository}/${dependency.subDir}";
+            }) (pkgs.lib.importJSON ./lake-manifest.json).packages
+          );
+          lakeOverrides = pkgs.writers.writeJSON "lake-package-overrides.json" (
+            (pkgs.lib.importJSON ./lake-manifest.json)
+            // {
+              packages = map (dependency: {
+                inherit (dependency) name inherited;
+                type = "path";
+                dir = ".lake/packages/${dependency.name}";
+              }) (pkgs.lib.importJSON ./lake-manifest.json).packages;
+            }
+          );
+          configureLake = ''
+            runHook preConfigure
+            mkdir -p .lake/packages
+            ${pkgs.lib.concatStringsSep "\n" (
+              pkgs.lib.mapAttrsToList (name: source: ''
+                # Dependencies can write hashes/traces beside their sources.
+                # Retain any compiled artifacts copied by lakeArtifacts.
+                if [ ! -d ".lake/packages/${name}" ]; then
+                  mkdir -p ".lake/packages/${name}"
+                  cp -r --no-preserve=mode ${source}/. ".lake/packages/${name}/"
+                fi
+              '') lakeDeps
+            )}
+            if [ ! -e .lake/package-overrides.json ]; then
+              ln -s ${lakeOverrides} .lake/package-overrides.json
+            fi
+            runHook postConfigure
+          '';
+          proofDependencySrc = pkgs.lib.fileset.toSource {
+            root = ./.;
+            fileset = pkgs.lib.fileset.unions [
+              ./.gitignore
+              ./lakefile.lean
+              ./lake-manifest.json
+              ./lean-toolchain
+              ./CybernetixProofDependencies.lean
+            ];
+          };
+          proofDependencies = lake2nix.mkPackage {
+            name = "CybernetixProofDependencies";
+            src = proofDependencySrc;
+            inherit lakeDeps;
+            configurePhase = configureLake;
+            LEAN_NUM_THREADS = "4";
+          };
           leanSrc = pkgs.lib.fileset.toSource {
             root = ./.;
             fileset = pkgs.lib.fileset.unions [
@@ -79,14 +140,21 @@
               ./Cargo.toml
               ./Cargo.lock
               ./Cybernetix.lean
+              ./CybernetixProofs.lean
+              ./CybernetixProofDependencies.lean
+              ./Tests.lean
               (pkgs.lib.fileset.fileFilter (f: f.hasExt "lean") ./Cybernetix)
+              (pkgs.lib.fileset.fileFilter (f: f.hasExt "lean") ./CybernetixProofs)
               (pkgs.lib.fileset.fileFilter (f: f.hasExt "lean") ./Tests)
+              (pkgs.lib.fileset.fileFilter (f: f.hasExt "lean") ./Examples)
               (pkgs.lib.fileset.fileFilter (f: f.hasExt "rs" || f.hasExt "toml") ./crates)
             ];
           };
           lakeArgs = {
             src = leanSrc;
-            lakeDeps = lake2nix.buildDeps { src = leanSrc; };
+            inherit lakeDeps;
+            configurePhase = configureLake;
+            LEAN_NUM_THREADS = "4";
             # An explicit Lake input replaces Ix's source-patching workaround.
             CYBERNETIX_RUST_STATIC_LIB = "${rustLib}/lib/libcybernetix_ffi.a";
           };
@@ -106,6 +174,28 @@
               meta.mainProgram = "cybernetix-ffi-smoke";
             }
           );
+          sgd = lake2nix.mkPackage (
+            lakeArgs
+            // {
+              name = "cybernetix-sgd";
+              installArtifacts = false;
+              meta.mainProgram = "cybernetix-sgd";
+            }
+          );
+          tests = lake2nix.mkPackage (
+            lakeArgs
+            // {
+              name = "cybernetix-tests";
+              installArtifacts = false;
+            }
+          );
+          proofs = lake2nix.mkPackage (
+            lakeArgs
+            // {
+              name = "CybernetixProofs";
+              lakeArtifacts = proofDependencies;
+            }
+          );
         in
         {
           packages = {
@@ -113,9 +203,15 @@
             lean = cybernetixLib;
             rust = rustLib;
             ffi-smoke = ffiSmoke;
+            inherit sgd proofs;
           };
 
           checks = {
+            inherit proofs;
+            sgd = pkgs.runCommand "cybernetix-tests-check" { } ''
+              ${tests}/bin/cybernetix-tests
+              touch "$out"
+            '';
             ffi-smoke = pkgs.runCommand "cybernetix-ffi-smoke-check" { } ''
               ${ffiSmoke}/bin/cybernetix-ffi-smoke
               touch "$out"

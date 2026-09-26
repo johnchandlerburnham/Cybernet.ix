@@ -1,0 +1,38 @@
+import CybernetixProofs.Exact
+import CybernetixProofs.Binary32
+import Lean.Util.CollectAxioms
+
+/-! Fail the build if a release theorem depends on an unapproved axiom.
+In particular, `sorryAx` and native-evaluation axioms are not allowed.
+-/
+
+open Lean Elab Command in
+run_cmd do
+  let allowed := #[``propext, ``Classical.choice, ``Quot.sound]
+  let roots := #[
+    ``Cybernetix.Training.Proofs.meanGradient_correct,
+    ``Cybernetix.Training.Proofs.sgdStep_loss,
+    ``Cybernetix.Training.Proofs.sgdStep_descent,
+    ``Cybernetix.Training.Proofs.sgdStep_cast,
+    ``Cybernetix.Training.Proofs.run_cast,
+    ``Cybernetix.Training.Exact.checkRun_iff,
+    ``Cybernetix.Training.Exact.run_append,
+    ``Cybernetix.Training.Exact.run_steps,
+    ``Cybernetix.Training.Exact.Runs.encoded_result_eq,
+    ``Cybernetix.Training.Proofs.example_valid,
+    ``Cybernetix.Training.Proofs.example_initial_loss,
+    ``Cybernetix.Training.Proofs.example_final_loss,
+    ``Cybernetix.Training.Proofs.example_loss_bound,
+    ``Cybernetix.Training.Proofs.example_prediction,
+    ``Cybernetix.Numeric.Binary32.Proofs.cases_correct,
+    ``Cybernetix.Numeric.Binary32.Proofs.toy_prefixes_exact,
+    ``Cybernetix.Numeric.Binary32.Proofs.toy_final_words,
+    ``Cybernetix.Numeric.Binary32.Proofs.toy_final_bytes,
+    ``Cybernetix.Numeric.Binary32.Proofs.reassociation_changes_answer]
+  for name in roots do
+    let _ ← getConstInfo name
+    let axioms ← collectAxioms name
+    for ax in axioms do
+      unless allowed.contains ax do
+        throwError "{name} depends on unapproved axiom {ax}"
+  logInfo m!"SGD axiom audit passed for {roots.size} theorem roots."

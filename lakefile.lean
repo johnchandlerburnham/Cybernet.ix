@@ -4,6 +4,9 @@ open System Lake DSL
 package cybernetix where
   version := v!"0.1.0"
 
+require mathlib from git
+  "https://github.com/leanprover-community/mathlib4" @ "v4.33.1"
+
 /-- Nix supplies a Crane-built archive; ordinary Lake builds invoke Cargo. -/
 target cybernetix_rs pkg : FilePath := do
   let output := pkg.buildDir / "lib" / nameToStaticLib "cybernetix_ffi"
@@ -33,6 +36,19 @@ target cybernetix_rs pkg : FilePath := do
 lean_lib Cybernetix where
   moreLinkObjs := #[cybernetix_rs]
 
-@[test_driver]
+lean_lib CybernetixProofDependencies
+
+@[default_target]
+lean_lib CybernetixProofs
+
+lean_lib Tests
+
 lean_exe «cybernetix-ffi-smoke» where
-  root := `Tests.FFI
+  root := `Tests.FFIMain
+
+@[test_driver]
+lean_exe «cybernetix-tests» where
+  root := `Tests.Main
+
+lean_exe «cybernetix-sgd» where
+  root := `Examples.SGD

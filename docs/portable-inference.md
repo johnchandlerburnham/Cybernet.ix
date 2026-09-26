@@ -4,6 +4,9 @@ Proposed contract, 2026-09-26. This is a requirement on Cybernet.ix models and
 backends, not a claim that an implementation already satisfies it. It applies
 to System One predictions, autoregressive models, and their composition in
 the [shared harness](design.md).
+The [certified SGD experiment](certified-sgd.md) now supplies a pure binary32
+reference and kernel-checked toy results under a separately named, narrower
+profile. It does not yet implement this complete contract.
 
 ## 1. The model denotes a portable function
 
@@ -61,7 +64,10 @@ world deterministic.
 Choose a profile provisionally named `P32`: explicit IEEE-style binary32 bit
 semantics for weights, activations, scalar operators, and intermediate
 rounding. Use a pure Lean bit representation for the reference implementation.
-Evaluate FloatLib as its first arithmetic dependency, with a pinned revision
+The first SGD experiment uses the pinned Lean 4.33.1 core `Float32.Model`,
+which supplies executable bit-level primitives. Extend this with the error,
+reduction, and conversion rules below. Evaluate FloatLib for additional
+numerical proofs and elementary functions, with a compatible pinned revision
 and audited theorem dependencies before adoption.
 
 The choice preserves familiar Transformer operations and connects to existing

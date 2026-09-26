@@ -384,7 +384,7 @@ The selected reuse strategy is:
 
 | Layer | Initial choice | Evidence still needed |
 |---|---|---|
-| Numerical semantics | Evaluate FloatLib's bit-encoded arithmetic as the first implementation foundation for portable binary32. | Compatible dependency pin, axiom audit, coverage of our operators, and the exact chosen transcendental programs. |
+| Numerical semantics | Lean 4.33.1's pure `Float32.Model` supplies the first SGD bit model; evaluate FloatLib for further numerical proofs and elementary functions. | Complete `P32` error/reduction rules, general refinement, and the exact chosen transcendental programs. |
 | Graph and differentiation | Own a small Cybernet.ix graph; adapt proven graph/VJP patterns from TorchLean and lean4-mlir where their statements fit. | Shape and sharing laws, reverse-mode composition, and numerical interpretations for our precise operator set. |
 | Reference execution | Pure Lean bit-level evaluator, followed by a C/Rust CPU implementation behind a refinement contract. | Equality to reference semantics and a concrete computation-checking path. |
 | Acceleration | PTX as the first GPU target to investigate, using PTXLean semantics for an admitted fragment; MLIR can be an additional producer. | Exact arithmetic, memory, synchronization, reduction, and target/runtime refinement. |
@@ -401,7 +401,9 @@ deterministic CUDA option is weaker than our portability requirement.
 training graphs and VJP proofs, while its lowering/runtime boundary needs
 separate evidence. None supplies an automatic certificate for our whole stack.
 
-These are reuse decisions at the interface level, not dependency installations.
+The [first SGD implementation](certified-sgd.md) uses Lean core's bit model
+and Mathlib v4.33.1 for calculus. The other libraries above remain reuse
+decisions at the interface level, not dependency installations.
 The inspected FloatLib and PTXLean toolchains are Lean 4.34.0, local Ix is
 4.33.1, and Compilatr.ix is 4.33.0. Resolving those pins and checking the actual
 theorem dependencies is an M1/M2 task in the [roadmap](roadmap.md).

@@ -1,7 +1,7 @@
 # Cybernet.ix
 
-Cybernet.ix is a proposed Lean 4 library for certified model training,
-portable deterministic inference, and orchestration. It supports System One
+Cybernet.ix is a Lean 4 library under development for certified model training,
+portable deterministic inference, and orchestration. Its design covers System One
 inference over typed Ixon data, specialized autoformalization models, and a
 path to general models at frontier scale. Training and the interaction harness
 share one semantic foundation.
@@ -56,6 +56,8 @@ a small MLP, and a sub-million-parameter Transformer. Later reference designs
 include a 44M encoder, 1.13B and 7.11B dense provers, and a 131B-total sparse
 general model. These are proposed configurations, not trained releases.
 
+- [Certified SGD](docs/certified-sgd.md): executable toy training, gradient and
+  run proofs, and the first binary32 portability experiment.
 - [Implementation roadmap](docs/roadmap.md): small-model progression informed
   by lean4-mlir, concrete milestones, proof obligations, and resource gates.
 - [First-principles design](docs/design.md): harness, corpus, and certificate claims.
@@ -64,14 +66,20 @@ general model. These are proposed configurations, not trained releases.
 - [Portable inference](docs/portable-inference.md): bit-level semantics,
   backend equivalence, and the PTXLean/Compilatr.ix compilation direction.
 - [Source notes](docs/research-notes.md): inspected foundations and remaining gaps.
-- [Development](docs/development.md): the Lean/Rust FFI scaffold, Nix packages,
+- [Development](docs/development.md): Lean/Rust builds, Nix packages,
   and build checks.
 
 Start development with `nix develop`, then `lake build` and `lake test`.
-`nix flake check` builds and checks the linked Lean/Rust scaffold.
+Run the training example with `lake exe cybernetix-sgd` or `nix run .#sgd`.
+The default Lake build checks the proofs; `nix flake check` also runs the
+compiled SGD/portability tests and Lean/Rust FFI checks.
 
-Status: architecture design and initial build scaffold, September 2026.
-Model, harness, and certification implementations remain to be developed.
+Status, September 2026: exact toy SGD with a proved minibatch gradient,
+kernel-checked training results, and a pure binary32 reference. For this
+recipe, all nine parameter checkpoints agree with exact arithmetic. Native
+binary32 passes the current host's comparison tests; general backend
+refinement, Ix certificate export, the harness, and larger models remain to
+be implemented.
 The [earlier 120B model sketch](verified-120b-v2.md) is
 retained as research material; its arithmetic, scale, and assurance claims are
 not adopted as requirements.

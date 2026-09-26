@@ -174,7 +174,15 @@ are independently proposed profiles, not inferred Leanstral implementations.
 The [Lean reference](https://lean-lang.org/doc/reference/latest/Basic-Types/Floating-Point-Numbers/)
 documents platform variation in native floating point. The initial reference
 therefore uses an explicit bit representation and executable arithmetic.
-FloatLib is the first arithmetic integration candidate; its inspected
+Inspection and use of the installed Lean 4.33.1 sources found a pure
+`Init.Data.Float.Model.Float32` implementation, including unpacking, arithmetic,
+rounding, and packing. The [certified SGD experiment](certified-sgd.md) now uses
+it directly and kernel-checks its toy run and primitive fixtures. This is
+separate from compiler-replaced native `Float32` execution. Mathlib v4.33.1
+also builds with this pin and supplies the real calculus proofs.
+
+FloatLib remains an integration candidate for further numerical proofs and
+elementary functions; its inspected
 [toolchain](https://github.com/lean-dojo/FloatLib/blob/main/lean-toolchain) is
 4.34.0, which must be reconciled with Ix's current pin.
 

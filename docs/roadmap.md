@@ -4,7 +4,9 @@ Draft, 2026-09-26. This document owns implementation order and milestone
 acceptance. The [design](design.md) defines the shared learning/harness model;
 [model architecture](model-architecture.md) defines the longer-term networks;
 [portable inference](portable-inference.md) defines the numerical contract.
-Except for the development scaffold, the work below remains to be implemented.
+The development scaffold and the first certified SGD slice are implemented;
+[certified SGD](certified-sgd.md) records the exact proof coverage. M1's Ix and
+harness integration, the rest of M2, and subsequent milestones remain open.
 
 Start with an exact toy training run and **MNIST linear classification**, then
 a small MLP, a byte-level language model, and a tiny Transformer. Build the
@@ -89,11 +91,17 @@ The repository is a colocated, Git-backed Jujutsu repository. The
 pinned Lean/Rust toolchains, Crane-built Rust archive, Lake integration, and
 compiled FFI smoke executable.
 
-On x86-64 Linux, `lake build`, `lake test`, `nix run .#ffi-smoke`, and
-`nix flake check` passed. The checks exercise Lean/Rust linking and object
-ownership, byte encoding, clippy, and Rust formatting. Other declared Nix
-platforms remain untested. There is no model implementation, numerical proof,
-Ix package dependency, training run, or model certificate yet.
+The scaffold was validated on x86-64 Linux with Lake and Nix. Its checks
+exercise Lean/Rust linking and object ownership, byte encoding, clippy, and
+Rust formatting. Other declared Nix platforms remain untested.
+
+The first training implementation now adds a shared two-feature regression
+definition, real minibatch-gradient and conditional descent proofs, an exact
+SGD run/checker, and a pure binary32 reference. Kernel proofs establish the
+toy final state and agreement of all nine finite parameter checkpoints with
+the exact run. The default build includes the proofs and axiom audit; tests
+cover replay, claim rejection, encoding, and native binary32 comparisons.
+Ix export, model certificates, and the common harness are still pending.
 
 ### Principles that govern every milestone
 
@@ -125,7 +133,7 @@ Ix package dependency, training run, or model certificate yet.
 |---|---|---|
 | M0: build | Lean library, Rust FFI, Nix packages | Linked smoke test and build checks pass on the current host. Done. |
 | M1: common semantics | Minimal harness, manifests, typed prediction, Ix claim checker | One recorded episode and its training projection agree; an independently checked claim binds the expected proposition. |
-| M2: numerical and training core | Tiny tensor graph, arithmetic subset, SGD toy, concrete run witness | A full tiny training/inference/turn chain checks from declared inputs; arithmetic and proof dependencies are explicit. |
+| M2: numerical and training core | Tiny tensor graph, arithmetic subset, SGD toy, concrete run witness | Initial SGD proofs and toy binary32 run implemented. Full `P32` subset, Ix export, and training/inference/turn integration remain. |
 | M3: linear MNIST | 7,850-parameter classifier, dataset pipeline, batched SGD | Reproducible predictions, useful held-out accuracy, actual batch-gradient proof, and measured evidence cost. |
 | M4: MLP and graph composition | 101,770-parameter MLP and compositional backward pass | Useful accuracy, correct sharing/gradient accumulation, declared ReLU backward convention, and preserved numerical semantics. |
 | M5: small language models | Byte bigram and 426,624-parameter causal Transformer | Correct sequence losses, portable decoding, and cache/padding equivalence on the supported reference graph. |
@@ -157,6 +165,8 @@ flowchart LR
 These are dependency and evidence gates, not calendar promises. A milestone
 can produce a useful experimental release while some claim categories remain
 pending, provided the release manifest says exactly which ones.
+The first SGD slice was implemented before M1 integration; it does not close
+the full M2 gate or bypass the shared harness and certificate contracts.
 
 ## 4. M1 — common artifacts, a minimal harness, and Ix admission
 
@@ -203,6 +213,11 @@ certificate plumbing, not a certificate about neural computation.
 
 ## 5. M2 — numerical semantics and a complete toy training run
 
+**Implemented slice:** [certified SGD](certified-sgd.md) describes the rational
+reference, real gradient and run bridge, concrete eight-update proof, binary32
+checkpoint equality, and native comparison fixtures. The remaining work below
+completes the profile, tensor, backend, Ix, and harness boundaries.
+
 ### Tensor and arithmetic scope
 
 Start with finite vectors, matrices, and static shapes; a graph records named
@@ -218,13 +233,14 @@ bit patterns, little-endian encoding, signed zeros, subnormal handling,
 rounding boundaries, and deterministic error selection as specified in
 [portable inference](portable-inference.md).
 
-The first dependency decision is whether an audited FloatLib subset can
-supply these operations under a compatible Lean pin. Produce a small
-compatibility build and a theorem/axiom inventory before adopting it. If a
-joint toolchain update is necessary, validate Ix and the FFI together. An
-exact rational fixture can establish the toy certificate path in the
-meantime, under a separately identified arithmetic interpretation; it cannot
-stand in for the `P32` implementation.
+The first implementation uses Lean 4.33.1's existing `Float32.Model` for pure
+bit-level primitives, alongside exact rational execution and compatible
+Mathlib calculus proofs. The toy finite profile has right-associated sums
+and propagating special values; it is separately named and does not implement
+the whole `P32` contract. Its theorem roots pass a transitive axiom audit.
+Evaluate a compatible FloatLib subset for additional numerical/error proofs
+and elementary functions before adoption. Any joint toolchain update must
+validate Ix and the FFI together and review the numerical profile's identity.
 
 ### Training example
 
@@ -694,19 +710,22 @@ quietly relax equality.
 
 ## 14. First implementation changes
 
-The next changes should remain small enough to review independently:
+The initial SGD implementation supplies the real batch calculus, exact run
+checker, concrete training/inference results, and a binary32 experiment. The
+next changes should remain small enough to review independently:
 
-1. **Pin the proof dependencies and add one Ix round trip.** Verify one
+1. **Add one Ix round trip.** Mathlib now matches the Lean 4.33.1 pin. Verify one
    expected proposition and its closure in a separate consumer; record
-   Lean/Mathlib/FloatLib compatibility findings.
+   Ix compatibility and axiom-policy findings.
 2. **Define manifest encodings and the finite prediction episode.** Implement
    the new harness core, `Fin n` output, rejection, replay, and supervised
    projection, with their initial laws.
 3. **Implement the first numerical subset and tensor relation.** Bit-encoded
    scalars, canonical reductions, finite vectors/matrices, and reference/FFI
    representation tests; record operator proof coverage.
-4. **Deliver the complete toy SGD chain.** Real calculus, finite update,
-   concrete run, inference, turn, and independently checked Ix claims.
+4. **Complete the toy SGD chain.** Connect the existing calculus and concrete
+   run proofs to the final numerical subset, a harness turn, and independently
+   checked Ix claims; report execution and certificate costs.
 5. **Add linear MNIST.** Data manifest/decoder, finite elementary functions,
    actual batched objective and gradient, experiment executable, and a
    measured concrete certificate sample.
