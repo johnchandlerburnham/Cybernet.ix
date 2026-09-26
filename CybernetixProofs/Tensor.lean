@@ -56,6 +56,59 @@ theorem view_ofFn (f : Fin n → UInt32) (i : Fin n) :
 
 theorem get_model (b : Buffer n) (i : Fin n) : (b.get i).toModel = b.view i := rfl
 
+theorem getWordFast_eq (b : Buffer n) (i : Fin n) (small : b.bytes.size < USize.size) :
+    b.getWordFast i small = b.getWord i := by
+  have hbound : 4 * i.val + 4 < USize.size := by have := b.size_eq; omega
+  have hindex (k : Fin 4) :
+      (USize.ofNat (4 * i.val) + k.val.toUSize).toNat = 4 * i.val + k.val := by
+    have h0 : 4 * i.val < USize.size := by omega
+    have hk : k.val < USize.size := by omega
+    change ((4 * i.val) % USize.size + k.val % USize.size) % USize.size = _
+    rw [Nat.mod_eq_of_lt h0, Nat.mod_eq_of_lt hk, Nat.mod_eq_of_lt (by omega)]
+  have hu (bytes : ByteArray) (index : USize) (h : index.toNat < bytes.size) :
+      bytes.uget index h = bytes[index.toNat] := rfl
+  simp only [getWordFast, hu]
+  have h0 : (USize.ofNat (4 * i.val)).toNat = 4 * i.val := by
+    change (4 * i.val) % USize.size = _
+    exact Nat.mod_eq_of_lt (by omega)
+  have h1 := hindex ⟨1, by decide⟩
+  have h2 := hindex ⟨2, by decide⟩
+  have h3 := hindex ⟨3, by decide⟩
+  change (USize.ofNat (4 * i.val) + 1).toNat = 4 * i.val + 1 at h1
+  change (USize.ofNat (4 * i.val) + 2).toNat = 4 * i.val + 2 at h2
+  change (USize.ofNat (4 * i.val) + 3).toNat = 4 * i.val + 3 at h3
+  simp only [USize.ofNatLT_eq_ofNat, h0, h1, h2, h3]
+  rfl
+
+theorem getFast_model (b : Buffer n) (i : Fin n) (small : b.bytes.size < USize.size) :
+    (b.getFast i small).toModel = b.view i := by
+  simp only [getFast, Float32.ofBits, getWordFast_eq, view]
+
+theorem getWordU_eq (b : Buffer n) (i : USize) (hi : i.toNat < n)
+    (small : b.bytes.size < USize.size) : b.getWordU i hi small = b.getWord ⟨i.toNat, hi⟩ := by
+  have h4 : 4 < USize.size := by have := b.size_eq; omega
+  have hoff : (i * 4).toNat = 4 * i.toNat := by
+    change (i.toNat * (4 % USize.size)) % USize.size = _
+    rw [Nat.mod_eq_of_lt h4, Nat.mod_eq_of_lt (by have := b.size_eq; omega), Nat.mul_comm]
+  have hindex (k : Fin 4) : (i * 4 + k.val.toUSize).toNat = 4 * i.toNat + k.val := by
+    change ((i * 4).toNat + k.val % USize.size) % USize.size = _
+    rw [hoff, Nat.mod_eq_of_lt (show k.val < USize.size by omega),
+      Nat.mod_eq_of_lt (show 4 * i.toNat + k.val < USize.size by have := b.size_eq; omega)]
+  have hu (bytes : ByteArray) (index : USize) (h : index.toNat < bytes.size) :
+      bytes.uget index h = bytes[index.toNat] := rfl
+  have h1 := hindex ⟨1, by decide⟩
+  have h2 := hindex ⟨2, by decide⟩
+  have h3 := hindex ⟨3, by decide⟩
+  change (i * 4 + 1).toNat = 4 * i.toNat + 1 at h1
+  change (i * 4 + 2).toNat = 4 * i.toNat + 2 at h2
+  change (i * 4 + 3).toNat = 4 * i.toNat + 3 at h3
+  simp only [getWordU, hu, hoff, h1, h2, h3]
+  rfl
+
+theorem getU_model (b : Buffer n) (i : USize) (hi : i.toNat < n)
+    (small : b.bytes.size < USize.size) : (b.getU i hi small).toModel = b.view ⟨i.toNat, hi⟩ := by
+  simp only [getU, Float32.ofBits, getWordU_eq, view]
+
 theorem ofBytes_roundtrip (b : Buffer n) : ofBytes n b.bytes = some b := by
   simp [ofBytes, b.size_eq]
 

@@ -1,6 +1,7 @@
 import Cybernetix.Model.LinearClassifier
 import Init.Data.Vector.Lemmas
 import Init.Data.Nat.Lemmas
+import CybernetixProofs.Tensor
 
 namespace Cybernetix.Numeric.Reduction
 
@@ -43,15 +44,93 @@ theorem native_model (length : Nat) (leaf : Fin length → Float32) :
   funext i
   split <;> rfl
 
+theorem nativeTreeSpan_eq (leaf : Nat → Float32) (height start : Nat) :
+    nativeTreeSpan leaf height start (2 ^ height) = nativeTree leaf height start := by
+  induction height generalizing start with
+  | zero => rfl
+  | succ height ih =>
+    rw [nativeTreeSpan, nativeTree]
+    have hhalf : 2 ^ (height + 1) / 2 = 2 ^ height := by
+      simp [Nat.pow_succ]
+    simp only [hhalf, ih]
+
+theorem nativeSpan_model (length : Nat) (leaf : Fin length → Float32) :
+    (nativeSpan length leaf).toModel = reference length (fun i => (leaf i).toModel) := by
+  simp only [nativeSpan, nativeTreeSpan_eq]
+  exact native_model length leaf
+
+theorem nativeTreeU_eq (leaf : USize → Float32) (height : Nat) (start span : USize)
+    (region : start.toNat + span.toNat ≤ USize.size) :
+    nativeTreeU leaf height start span =
+      nativeTreeSpan (fun i => if i < USize.size then leaf i.toUSize else .ofBits 0)
+        height start.toNat span.toNat := by
+  induction height generalizing start span with
+  | zero => simp [nativeTreeU, nativeTreeSpan, start.toNat_lt_size]
+  | succ height ih =>
+    have hhalf : (span / 2).toNat = span.toNat / 2 := by simp
+    have hnext : (start + span / 2).toNat = start.toNat + span.toNat / 2 := by
+      rw [USize.toNat_add, hhalf]
+      apply Nat.mod_eq_of_lt
+      have := start.toNat_lt_size
+      change start.toNat + span.toNat / 2 < USize.size
+      omega
+    rw [nativeTreeU, nativeTreeSpan]
+    rw [ih start (span / 2) (by rw [hhalf]; omega)]
+    rw [ih (start + span / 2) (span / 2) (by rw [hhalf, hnext]; omega)]
+    simp only [hhalf, hnext]
+
 end Cybernetix.Numeric.Reduction
 
 namespace Cybernetix.Model.LinearClassifier
 
+theorem validate_eq (kind : InputKind) (buffer : Tensor.Buffer n) :
+    validate kind buffer = validateScalars kind buffer.get := by
+  unfold validate
+  split
+  · congr 1
+    funext i
+    simp only [Tensor.Buffer.getFast, Tensor.Buffer.get, Tensor.Buffer.getWordFast_eq]
+  · rfl
+
+theorem machineLeaf_model (p : Parameters inputs outputs) (x : Tensor.Buffer inputs)
+    (j : Fin outputs) (hx : x.bytes.size < USize.size)
+    (hw : p.weights.bytes.size < USize.size) (columns : outputs < USize.size) (i : Nat) :
+    (if i < USize.size then machineLeaf p x j hx hw columns i.toUSize
+      else Float32.ofBits 0).toModel =
+    (if h : i < inputs then
+      x.view ⟨i, h⟩ * p.weights.view (Tensor.Buffer.matrixIndex ⟨i, h⟩ j)
+    else Float32.Model.ofBits 0) := by
+  have hinputs : inputs < USize.size := by have := x.size_eq; omega
+  by_cases hsmall : i < USize.size
+  · have hi : i.toUSize.toNat = i := Nat.mod_eq_of_lt hsmall
+    simp only [if_pos hsmall, machineLeaf, USize.lt_iff_toNat_lt,
+      USize.toNat_ofNatLT, hi]
+    split
+    · simp only [Numeric.Reduction.mul_model, Tensor.Buffer.getU_model,
+        machineIndex_value, hi, Tensor.Buffer.matrixIndex]
+    · rfl
+  · have hlarge : ¬i < inputs := by omega
+    simp only [if_neg hsmall, dif_neg hlarge]
+    rfl
+
 theorem nativeDot_model (p : Parameters inputs outputs) (x : Tensor.Buffer inputs)
     (j : Fin outputs) : (nativeDot p x j).toModel = referenceDot p x j := by
   unfold nativeDot referenceDot
-  rw [Numeric.Reduction.native_model]
-  rfl
+  split
+  · split
+    · split
+      · split
+        · rw [Numeric.Reduction.nativeTreeU_eq _ _ _ _ (by simp; omega)]
+          simp only [USize.toNat_ofNatLT, USize.reduceToNat, Numeric.Reduction.nativeTreeSpan_eq,
+            Numeric.Reduction.nativeTree_model]
+          unfold Numeric.Reduction.reference
+          congr 1
+          funext i
+          exact machineLeaf_model p x j _ _ _ i
+        · rw [Numeric.Reduction.native_model]; rfl
+      · rw [Numeric.Reduction.native_model]; rfl
+    · rw [Numeric.Reduction.native_model]; rfl
+  · rw [Numeric.Reduction.native_model]; rfl
 
 theorem nativeLogit_model (p : Parameters inputs outputs) (x : Tensor.Buffer inputs)
     (j : Fin outputs) : (nativeLogit p x j).map Float32.toModel = referenceLogit p x j := by

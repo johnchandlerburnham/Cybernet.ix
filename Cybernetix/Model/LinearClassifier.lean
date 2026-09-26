@@ -26,21 +26,63 @@ inductive Error where
   | nonFiniteBiasAdd (output : Nat)
   deriving Repr, DecidableEq
 
-/-- Validation order is image, row-major weights, bias, then output index. -/
-def validate (kind : InputKind) (buffer : Buffer n) : Except Error Unit := do
+@[specialize] def validateScalars (kind : InputKind) (get : Fin n → Float32) : Except Error Unit := do
   for i in [:n] do
     if h : i < n then
-      unless (buffer.get ⟨i, h⟩).isFinite do
+      unless (get ⟨i, h⟩).isFinite do
         throw (.nonFiniteInput kind i)
+
+/-- Validation order is image, row-major weights, bias, then output index. -/
+def validate (kind : InputKind) (buffer : Buffer n) : Except Error Unit :=
+  if small : buffer.bytes.size < USize.size then
+    validateScalars kind fun i => buffer.getFast i small
+  else validateScalars kind buffer.get
 
 def referenceDot (p : Parameters inputs outputs) (x : Buffer inputs)
     (j : Fin outputs) : Float32.Model :=
   Numeric.Reduction.reference inputs fun i =>
     x.view i * p.weights.view (Buffer.matrixIndex i j)
 
+@[inline] def machineIndex (i : USize) (_hi : i.toNat < inputs) (j : Fin outputs)
+    (columns : outputs < USize.size) (_size : inputs * outputs < USize.size) : USize :=
+  i * USize.ofNatLT outputs columns + USize.ofNatLT j.val (by omega)
+
+theorem machineIndex_value (i : USize) (hi : i.toNat < inputs) (j : Fin outputs)
+    (columns : outputs < USize.size) (size : inputs * outputs < USize.size) :
+    (machineIndex i hi j columns size).toNat = i.toNat * outputs + j.val := by
+  have hindex := (Buffer.matrixIndex (⟨i.toNat, hi⟩ : Fin inputs) j).isLt
+  change i.toNat * outputs + j.val < inputs * outputs at hindex
+  simp only [machineIndex, USize.toNat_add, USize.toNat_mul, USize.toNat_ofNatLT]
+  rw [Nat.mod_eq_of_lt (show i.toNat * outputs < USize.size by omega),
+    Nat.mod_eq_of_lt (show i.toNat * outputs + j.val < USize.size by omega)]
+
+@[inline] def machineLeaf (p : Parameters inputs outputs) (x : Buffer inputs) (j : Fin outputs)
+    (hx : x.bytes.size < USize.size) (hw : p.weights.bytes.size < USize.size)
+    (columns : outputs < USize.size) (i : USize) : Float32 :=
+  have hinputs : inputs < USize.size := by have := x.size_eq; omega
+  if h : i < USize.ofNatLT inputs hinputs then
+    have hi : i.toNat < inputs := by simpa [USize.lt_iff_toNat_lt] using h
+    have hweights : inputs * outputs < USize.size := by have := p.weights.size_eq; omega
+    let index := machineIndex i hi j columns hweights
+    have hindex : index.toNat < inputs * outputs := by
+      rw [machineIndex_value]
+      exact (Buffer.matrixIndex (⟨i.toNat, hi⟩ : Fin inputs) j).isLt
+    x.getU i hi hx * p.weights.getU index hindex hw
+  else .ofBits 0
+
 @[inline] def nativeDot (p : Parameters inputs outputs) (x : Buffer inputs)
     (j : Fin outputs) : Float32 :=
-  Numeric.Reduction.native inputs fun i => x.get i * p.weights.matrixGet i j
+  if hx : x.bytes.size < USize.size then
+    if hw : p.weights.bytes.size < USize.size then
+      if columns : outputs < USize.size then
+        if span : 2 ^ Numeric.Reduction.depth inputs < USize.size then
+          Numeric.Reduction.nativeTreeU (machineLeaf p x j hx hw columns)
+            (Numeric.Reduction.depth inputs) 0
+            (USize.ofNatLT (2 ^ Numeric.Reduction.depth inputs) span)
+        else Numeric.Reduction.native inputs fun i => x.get i * p.weights.matrixGet i j
+      else Numeric.Reduction.native inputs fun i => x.get i * p.weights.matrixGet i j
+    else Numeric.Reduction.native inputs fun i => x.get i * p.weights.matrixGet i j
+  else Numeric.Reduction.native inputs fun i => x.get i * p.weights.matrixGet i j
 
 def referenceLogit (p : Parameters inputs outputs) (x : Buffer inputs)
     (j : Fin outputs) : Except Error Float32.Model :=

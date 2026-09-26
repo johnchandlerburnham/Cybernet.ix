@@ -31,6 +31,32 @@ def referenceTree (leaf : Nat → Float32.Model) : Nat → Nat → Float32.Model
       if right.isFinite then left + right else right
     else left
 
+/-- Carry the subtree width rather than recomputing a power at every node. -/
+@[specialize] def nativeTreeSpan (leaf : Nat → Float32) : Nat → Nat → Nat → Float32
+  | 0, start, _ => leaf start
+  | height + 1, start, span =>
+    let half := span / 2
+    let left := nativeTreeSpan leaf height start half
+    if left.isFinite then
+      let right := nativeTreeSpan leaf height (start + half) half
+      if right.isFinite then left + right else right
+    else left
+
+@[inline] def nativeSpan (length : Nat) (leaf : Fin length → Float32) : Float32 :=
+  nativeTreeSpan (fun i => if h : i < length then leaf ⟨i, h⟩ else .ofBits 0)
+    (depth length) 0 (2 ^ depth length)
+
+/-- Machine-sized tree traversal; the caller proves the complete span fits. -/
+@[specialize] def nativeTreeU (leaf : USize → Float32) : Nat → USize → USize → Float32
+  | 0, start, _ => leaf start
+  | height + 1, start, span =>
+    let half := span / 2
+    let left := nativeTreeU leaf height start half
+    if left.isFinite then
+      let right := nativeTreeU leaf height (start + half) half
+      if right.isFinite then left + right else right
+    else left
+
 def reference (length : Nat) (leaf : Fin length → Float32.Model) : Float32.Model :=
   referenceTree (fun i => if h : i < length then leaf ⟨i, h⟩ else .ofBits 0)
     (depth length) 0

@@ -36,9 +36,13 @@ run_cmd do
     ``Cybernetix.Tensor.Buffer.view_ofFn,
     ``Cybernetix.Tensor.Buffer.ofBytes_roundtrip,
     ``Cybernetix.Tensor.Buffer.ofBytes_reject,
+    ``Cybernetix.Tensor.Buffer.getWordFast_eq,
+    ``Cybernetix.Tensor.Buffer.getWordU_eq,
     ``Cybernetix.Numeric.Reduction.depth_covers,
     ``Cybernetix.Numeric.Reduction.depth_minimal,
     ``Cybernetix.Numeric.Reduction.native_model,
+    ``Cybernetix.Numeric.Reduction.nativeTreeU_eq,
+    ``Cybernetix.Model.LinearClassifier.validate_eq,
     ``Cybernetix.Model.LinearClassifier.forward_eq_reference,
     ``Cybernetix.Model.LinearClassifier.argmax_correct]
   for name in roots do
