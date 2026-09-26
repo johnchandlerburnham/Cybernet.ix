@@ -182,6 +182,22 @@
               meta.mainProgram = "cybernetix-sgd";
             }
           );
+          mnistExe = lake2nix.mkPackage (
+            lakeArgs
+            // {
+              name = "cybernetix-mnist";
+              installArtifacts = false;
+            }
+          );
+          mnist = pkgs.writeShellApplication {
+            name = "cybernetix-mnist";
+            runtimeInputs = [
+              pkgs.curl
+              pkgs.gzip
+              pkgs.coreutils
+            ];
+            text = ''exec ${mnistExe}/bin/cybernetix-mnist "$@"'';
+          };
           tests = lake2nix.mkPackage (
             lakeArgs
             // {
@@ -203,7 +219,7 @@
             lean = cybernetixLib;
             rust = rustLib;
             ffi-smoke = ffiSmoke;
-            inherit sgd proofs;
+            inherit sgd mnist proofs;
           };
 
           checks = {
@@ -237,6 +253,9 @@
                 pkgs.rust-analyzer
                 pkgs.git
                 pkgs.jujutsu
+                pkgs.curl
+                pkgs.gzip
+                pkgs.coreutils
               ];
             }
           );

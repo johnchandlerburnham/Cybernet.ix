@@ -3,4 +3,6 @@ import CybernetixProofs.Exact
 import CybernetixProofs.Binary32
 import CybernetixProofs.Tensor
 import CybernetixProofs.LinearClassifier
+import CybernetixProofs.LinearArtifact
+import CybernetixProofs.MNIST
 import CybernetixProofs.Audit

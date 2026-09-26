@@ -52,3 +52,6 @@ lean_exe «cybernetix-tests» where
 
 lean_exe «cybernetix-sgd» where
   root := `Examples.SGD
+
+lean_exe «cybernetix-mnist» where
+  root := `Examples.MNIST

@@ -2,6 +2,8 @@ import CybernetixProofs.Exact
 import CybernetixProofs.Binary32
 import CybernetixProofs.Tensor
 import CybernetixProofs.LinearClassifier
+import CybernetixProofs.LinearArtifact
+import CybernetixProofs.MNIST
 import Lean.Util.CollectAxioms
 
 /-! Fail the build if a release theorem depends on an unapproved axiom.
@@ -44,7 +46,12 @@ run_cmd do
     ``Cybernetix.Numeric.Reduction.nativeTreeU_eq,
     ``Cybernetix.Model.LinearClassifier.validate_eq,
     ``Cybernetix.Model.LinearClassifier.forward_eq_reference,
-    ``Cybernetix.Model.LinearClassifier.argmax_correct]
+    ``Cybernetix.Model.LinearClassifier.argmax_correct,
+    ``Cybernetix.Model.LinearClassifier.decodeParameters_encode,
+    ``Cybernetix.Corpus.MNIST.pixelWord_eq,
+    ``Cybernetix.Corpus.MNIST.input_word,
+    ``Cybernetix.Corpus.MNIST.pixels_finite,
+    ``Cybernetix.Corpus.MNIST.train_validation_disjoint]
   for name in roots do
     let _ ← getConstInfo name
     let axioms ← collectAxioms name

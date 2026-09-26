@@ -76,10 +76,14 @@ compiled SGD/portability tests and Lean/Rust FFI checks.
 
 Status, September 2026: exact toy SGD with a proved minibatch gradient,
 kernel-checked training results, and a pure binary32 reference. For this
-recipe, all nine parameter checkpoints agree with exact arithmetic. Native
-binary32 passes the current host's comparison tests; general backend
-refinement, Ix certificate export, the harness, and larger models remain to
-be implemented.
+recipe, all nine parameter checkpoints agree with exact arithmetic. The linear
+MNIST inference path now has packed tensors, deterministic dense reductions,
+a proved logical refinement, typed argmax, validated IDX loading, pinned
+dataset identities, and shared pixel preprocessing. `lake exe cybernetix-mnist`
+provides acquisition, inspection, zero initialization, and inference commands;
+see [development](docs/development.md). MNIST training is still under development.
+Native comparisons have passed on the current host; compiler/backend proofs,
+Ix certificate export, and the shared interaction harness remain open.
 The [earlier 120B model sketch](verified-120b-v2.md) is
 retained as research material; its arithmetic, scale, and assurance claims are
 not adopted as requirements.

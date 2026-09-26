@@ -53,6 +53,49 @@ The repository is colocated Git/Jujutsu: both `.git` and `.jj` are present.
 Inside the shell, use `jj status`, `jj diff`, and `jj log`. `.envrc` supports
 direnv for users who enable it.
 
+## MNIST data and inference
+
+```sh
+lake exe cybernetix-mnist fetch
+lake exe cybernetix-mnist inspect
+lake exe cybernetix-mnist init plans/mnist/zero.bin
+lake exe cybernetix-mnist predict plans/mnist/zero.bin SHA256 train 0
+```
+
+Replace `SHA256` with the digest printed by `init`. `nix run .#mnist -- …`
+provides the same commands with their external tools. The default dataset
+directory is the ignored `plans/mnist/data`; `fetch`, `inspect`, and `predict`
+accept an alternate directory as their last argument. The Nix shell supplies
+curl, gzip, and sha256sum. Ordinary builds and tests need no dataset download.
+
+The [manifest](../Cybernetix/Corpus/MNISTManifest.lean) pins both compressed
+and decoded SHA-256 identities from the [CVDF mirror](https://github.com/cvdfoundation/mnist).
+Admission hashes the actual bytes passed to the pure IDX decoder. The decoder
+checks magic values, dimensions, exact lengths, paired counts and label bounds.
+Training indices are `[0,55000)`, validation indices `[55000,60000)`, and the
+10,000-image test release is held out. `predict` takes an index within its
+selected split and prints the corresponding release index.
+
+The preprocessing profile `cybernetix.mnist-u8-div255.v1.lean-4.33.1` fixes
+row-major byte input, exact byte conversion, and rounded binary32 division by
+255. The inference command prints this identity alongside the dense profile.
+
+Weight payload v1 contains 7,840 row-major weight words followed by ten bias
+words: exactly 31,400 little-endian bytes. The executable fixes the architecture
+and numerical profile, requires the expected weight digest, and rejects
+nonfinite parameters. It prints input identity, logit words, and a digit;
+zero initialization predicts digit zero by the first-tie rule. This exercises
+image-to-prediction and does not demonstrate a learned model. Payloads alone
+do not encode a training recipe or constitute a certificate.
+
+Proofs cover packed word round trips, optimized forward/reference equality,
+argmax maximality and tie-breaking over the finite encoding order, pixel
+preprocessing correspondence, and training/validation index separation. The
+kernel checks all 256 pixel conversions for finiteness. Native tests include
+malformed IDX and weight payloads, all pixel conversions, and numerical edge
+cases. Hashing, acquisition tools, native compilation and hardware remain
+explicit execution boundaries; cross-platform agreement still needs another host.
+
 ## Nix packages and checks
 
 ```sh
