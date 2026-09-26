@@ -495,40 +495,34 @@ release. The inspected references use different versions: Ix uses Lean 4.33.1,
 Ant.ix 4.29.0, Lane and Compilatr.ix 4.33.0, and inspected PTXLean/FloatLib
 sources use 4.34.0. Design precedents do not automatically become package
 dependencies. Resolve pins and validate narrow adapters before integration.
-The new harness and training core are developed together in Cybernet.ix;
-no combined build has yet been demonstrated.
+The new harness and training core will be developed together in Cybernet.ix.
+The [Lean/Rust build scaffold](development.md) is implemented; integration
+of the numerical, harness, and certificate dependencies remains future work.
 
-## 9. First demonstrator and gates
+## 9. Implementation progression
 
-The first complete demonstration should train a small action policy, use it
-in the Lean harness, and export certificates for both its training and a turn.
-An exact toy network is sufficient to test that chain; it is not evidence of
-LLM-scale training performance. The same interfaces then support a small
-transformer.
+The [implementation roadmap](roadmap.md) owns the detailed milestones and
+acceptance gates. Begin with shared harness/artifact definitions and an Ix
+claim experiment, then a complete toy SGD training/inference/turn certificate.
+Linear MNIST and a small MLP test useful learning before introducing sequence
+models. A byte bigram and a 426,624-parameter Transformer exercise the language
+path well before the proposed 44M encoder or billion-parameter provers.
 
-| Stage | Deliverable | Gate |
-|---|---|---|
-| 0. Shared semantics and certificate experiment | A minimal Cybernet.ix harness, one observation/action/response cycle and its training projection, compatible dependency pins, plus an Ix certificate for a small explicit theorem. | Execution and projected examples agree on the action's meaning; independent verification binds the expected type and dependencies. |
-| 1. Corpus and interaction experiment | Canonical names and paired term/source records for a bounded Lean corpus; a few prover operations in the new harness with recorded episodes. | Core projection round-trips, source variants retain provenance, traces replay, and invalid/stale actions cannot dispatch. |
-| 2. Complete exact training example | A toy network with SGD, executable `P32`, a concrete training witness, portable inference, and a certified turn; start a checked scalar/reduction GPU kernel. | Exported weights and turn verify from their declared inputs; substitution controls fail. Measure proof costs and distinguish target-model proofs from device execution evidence. |
-| 3. System One pilot | Train the 44M choice baseline, then add schema-directed constructor/field heads in the same harness. | Useful typed predictions and calibration, CPU/GPU bit agreement, and explicit proof coverage. Limits on the first head do not define the general interface. |
-| 4. Dense prover and interaction learning | Prover-1B through Lean, supervised episodes, then versioned rewards and a specified policy-gradient update. | Proof success per budget, statement alignment, split isolation, portable decoding, rollout provenance, and measured training/certificate costs. |
-| 5. Larger and general models | Prover-7B and a sparse general-model experiment with distributed training and serving. | Data and learning curves justify scale; checked placements preserve arithmetic and dropless routing; resources and concrete-run evidence are viable. |
+Each small task uses the same output, episode, and training interfaces. MNIST
+is a finite-choice System One instance, while source/term/trace experiments
+develop the richer typed and generative interfaces. The bounded Ixon corpus
+and Lean tool adapter can develop once the harness contracts exist, alongside
+the numerical work. A preexisting model can bootstrap episodes with explicit
+external inference/training assumptions.
 
-Stages 1 and 2 explore representation and certification respectively, and meet
-in the same demonstration. A preexisting model can bootstrap episodes without
-becoming trusted or acquiring an invented training certificate.
+The first complete run certificate covers a computation small enough to check
+directly. Larger training examples must report their actual program, backend,
+and concrete-run coverage separately. Useful MNIST accuracy does not establish
+a certificate for every training step, and a gradient theorem does not certify
+a GPU runtime.
 
-For representation experiments, compare tactic/source views, explicit term
-views, and paired views with the same data, retrieval, and budget. Measure
-well-typed action rate separately from proof success and correspondence to
-informal intent. This tests the corpus hypothesis before committing to scale.
-
-The initial architecture and arithmetic are now specific enough to implement.
-Open implementation decisions include compatible library pins, exact elementary
-programs/constants, elaboration metadata coverage, and the first accepted GPU
-instruction fragment. The major feasibility questions are accelerated portable
-throughput and economical certificates for concrete training/inference runs.
-The [architecture](model-architecture.md) gives resource accounting and gates;
-the parameter configurations express the ambition without assuming its costs
-or empirical results have already been established.
+The main feasibility gates are portable numerical throughput, useful learning
+from the canonical corpus, and economical evidence for concrete training and
+inference. The [architecture](model-architecture.md) retains the larger
+configurations and resource accounting; the roadmap makes the experiments
+that must justify scaling explicit.

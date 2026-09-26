@@ -4,6 +4,9 @@ Proposed architecture, 2026-09-26. These are concrete starting configurations
 and implementation targets, not trained models or completed proofs. The
 [system design](design.md) defines the shared harness and certificate claims;
 [portable inference](portable-inference.md) fixes the numerical contract.
+The [implementation roadmap](roadmap.md) owns delivery order: toy SGD,
+linear MNIST, a small MLP, byte bigram, and a tiny Transformer precede the
+larger reference configurations below.
 
 ## 1. Model interfaces, specialization, and scale
 
@@ -14,7 +17,7 @@ A System One model can be large and general; an autoformalization model can
 have both typed prediction heads and a token decoder. They share a tensor
 language, numerical semantics, artifacts, training machinery, and harness.
 
-| Use | Initial implementation | Output | Intended role |
+| Use | Larger reference implementation | Output | Intended role |
 |---|---|---|---|
 | System One | Bidirectional Transformer with schema-conditioned prediction heads; finite-choice head first | Typed predictions, distributions, scores, and structured values under a declared output schema | Learned functions over program state, including multiple questions and structured tool decisions |
 | Prover | Dense causal Transformer with grouped-query attention | Tokens encoding source, proof terms, tactics, and typed tool proposals | Specialized autoformalization and proof engineering |
@@ -69,11 +72,13 @@ MoE total parameters             = Vd + L(A + E F + dE) + N
 MoE active-count proxy           = Vd + L(A + k F + dE) + N
 ```
 
-The first certification experiment uses a much smaller instance of these
-operators, preceded by a toy network and SGD. Prover-1B is the first meaningful
-generative target after the arithmetic and backend gates pass. Prover-7B and
-General-MoE make the intended scaling requirements concrete; they are not
-commitments to immediately fund runs of those sizes.
+The first certification experiment uses toy SGD, followed by linear MNIST
+(7,850 parameters), an MLP (101,770), a byte bigram (65,536), and a two-layer
+causal Transformer (426,624). Their configurations and acceptance gates are
+in the [roadmap](roadmap.md). Prover-1B is a later dense-prover pilot after
+the small-model, corpus, arithmetic, and backend gates pass. Prover-7B and
+General-MoE make the scaling requirements concrete; they are not commitments
+to immediately fund runs of those sizes.
 
 ## 3. The shared Transformer block
 
@@ -202,10 +207,10 @@ the workflows that consume them. Calibration remains a measured property on a
 specified task distribution, not a consequence of Lean typing or a portable
 arithmetic theorem.
 
-### First implementation: finite-choice encoder
+### Encoder pilot: finite-choice head
 
-The first System One configuration ranks a finite, nonempty list of fully constructed
-values of a specified Lean type. For a state-dependent tool protocol, these
+The SystemOne-44M choice configuration ranks a finite, nonempty list of fully
+constructed values of a specified Lean type. For a state-dependent tool protocol, these
 can be values of `Action state`, after checking the relevant context and
 admission conditions. Conceptually:
 
@@ -262,7 +267,8 @@ probability distribution; exact sampling normalization is specified separately.
 
 ## 5. A generative prover and autoformalizer
 
-Start with the dense Prover-1B configuration. Its observation contains the
+After the tiny language-model and harness experiments, use Prover-1B for
+the first billion-parameter dense pilot. Its observation contains the
 task, available premises, local context, goal state, prior tool responses, and
 remaining budget, projected by the shared `HarnessSpec` and `ViewSpec`.
 Retrieval is part of this protocol, with an addressed result set and explicit
@@ -301,8 +307,9 @@ unbiased-gradient theorem for an ideal real softmax. An imported model can
 bootstrap data, and an imported checkpoint can be fine-tuned, but its earlier
 training remains outside the certificate for that fine-tuning run.
 
-Use AdamW after the toy SGD demonstration: first and second moments, bias
-correction, decoupled weight decay, and global gradient-norm clipping. Select
+Use SGD through the initial MNIST experiments and introduce AdamW for the
+tiny Transformer: first and second moments, bias correction, decoupled weight
+decay, and global gradient-norm clipping. Select
 initial beta values 0.9 and 0.95, epsilon `1e-8`, and clipping threshold 1.
 Learning rate, warmup, decay schedule, weight-decay coefficient, loss mixture,
 batch schedule, initialization, and update count belong to an explicit run
@@ -367,8 +374,8 @@ reverse-mode transformation, and storage/placement interpretation separate.
 Parameterize reusable theorems by dimensions and primitive contracts so larger
 configurations instantiate proofs rather than require a proof per weight.
 
-The first primitive set is embedding/gather, linear maps, pointwise arithmetic,
-canonical reductions, masking, normalization, positional rotation, softmax,
+The Transformer primitive set is embedding/gather, linear maps, pointwise
+arithmetic, canonical reductions, masking, normalization, positional rotation, softmax,
 SwiGLU, and structured selection. Add sparse dispatch after the dense graph is
 working. The harness uses these graphs through a policy interface with both
 decision and autoregressive implementations.
@@ -397,7 +404,7 @@ separate evidence. None supplies an automatic certificate for our whole stack.
 These are reuse decisions at the interface level, not dependency installations.
 The inspected FloatLib and PTXLean toolchains are Lean 4.34.0, local Ix is
 4.33.1, and Compilatr.ix is 4.33.0. Resolving those pins and checking the actual
-theorem dependencies is a stage-zero task.
+theorem dependencies is an M1/M2 task in the [roadmap](roadmap.md).
 The project should not acquire multiple incompatible numerical authorities
 merely by combining libraries. See the [source notes](research-notes.md).
 
@@ -431,9 +438,10 @@ For these GQA decoders, a binary32 KV cache alone costs
 at 8,192 tokens therefore needs about 0.81 GB of KV storage. Long contexts and
 concurrent sessions must be budgeted even when the weights fit.
 
-Use the decision model to measure a modest accelerator experiment and CPU
-verification. The 1B pilot needs an accelerator memory budget beyond its
-18 GB of training arrays, or explicit sharding/recomputation. Full 7B training
+Use MNIST and the tiny Transformer to measure accelerator execution and CPU
+verification before the larger decision model. The 1B pilot needs an
+accelerator memory budget beyond its 18 GB of training arrays, or explicit
+sharding/recomputation. Full 7B training
 and the MoE plan require distributed resources; adapter fine-tuning can reduce
 trainable state but does not remove the base model's forward cost.
 

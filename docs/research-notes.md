@@ -113,6 +113,38 @@ relevant to distinguishing a gradient-estimator theorem from an entire training
 run certificate. The supplied Pantograph rationale URL was unavailable during
 inspection; the project's GitHub mirror supplied the interface description.
 
+### Small training examples in lean4-mlir
+
+The follow-up source review used commit
+[`373059db8e0a32f2af15b27f9e2a4ed8175eece3`](https://github.com/brettkoonce/lean4-mlir/tree/373059db8e0a32f2af15b27f9e2a4ed8175eece3).
+Its [Lean pin](https://github.com/brettkoonce/lean4-mlir/blob/373059db8e0a32f2af15b27f9e2a4ed8175eece3/lean-toolchain)
+and [Mathlib dependency](https://github.com/brettkoonce/lean4-mlir/blob/373059db8e0a32f2af15b27f9e2a4ed8175eece3/lakefile.lean)
+are 4.34.0. No upstream proof build or training run was performed.
+
+The most useful examples are linear/MLP MNIST, character bigram, TinyGPT,
+and a small Blackjack DQN. The [roadmap](roadmap.md) links their exact entry
+points and derives a smaller implementation progression from them. The
+shared verified model definitions in
+[`NetsCore.lean`](https://github.com/brettkoonce/lean4-mlir/blob/373059db8e0a32f2af15b27f9e2a4ed8175eece3/LeanMlir/Verified/NetsCore.lean)
+are particularly useful: the trainer and corresponding theorem name the
+same object. This is a design pattern to adopt before selecting any backend.
+
+The [linear training capstone](https://github.com/brettkoonce/lean4-mlir/blob/373059db8e0a32f2af15b27f9e2a4ed8175eece3/LeanMlir/Proofs/Nets/Small/LinearFold.lean)
+states a single-example result and explicitly excludes the emitted batch
+contraction from that statement. Its byte/render tie also has a separate CI
+check. These distinctions make it a useful review example: Cybernet.ix needs
+to bind the actual batch reduction and consumed artifact, not just the
+single-example real derivative.
+
+The [float bridge](https://github.com/brettkoonce/lean4-mlir/blob/373059db8e0a32f2af15b27f9e2a4ed8175eece3/LeanMlir/Proofs/Float/FloatBridge.lean)
+uses a rounding model with hypotheses and a specified fold. Its error bounds
+are distinct from executable bit-level conformance. The
+[proof guide](https://github.com/brettkoonce/lean4-mlir/blob/373059db8e0a32f2af15b27f9e2a4ed8175eece3/LeanMlir/Proofs/README.md)
+describes remaining numerical, op/text, lowering, and runtime assumptions.
+Adoption requires checking actual theorem coverage and compatible pins;
+no claim of portable GPU inference or complete training-run certification
+is inherited merely by reusing these examples.
+
 ### System One and generative-model precedents
 
 [Jev's introduction](https://typesafe.ai/blog/introducing-system-one-models-and-jev)

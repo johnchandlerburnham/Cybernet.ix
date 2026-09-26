@@ -50,13 +50,15 @@ every conforming backend.** Arithmetic, reductions, tokenization, structured
 prediction, and decoding belong to the model specification. Batch neighbors,
 cache use, and device scheduling cannot change the answer.
 
-System One describes a typed prediction interface, not a model size. The first
-configuration is a 44M-parameter encoder for finite choices, extending to
-schema-directed records and inductive values. Generative reference designs
-start with 1.13B and 7.11B dense Transformers and extend to a 131B-total sparse
-model. These are proposed configurations, not trained releases.
+System One describes a typed prediction interface, not a model size. Start
+implementation with an exact toy run, a 7,850-parameter MNIST classifier,
+a small MLP, and a sub-million-parameter Transformer. Later reference designs
+include a 44M encoder, 1.13B and 7.11B dense provers, and a 131B-total sparse
+general model. These are proposed configurations, not trained releases.
 
-- [First-principles design](docs/design.md): harness, corpus, claims, and roadmap.
+- [Implementation roadmap](docs/roadmap.md): small-model progression informed
+  by lean4-mlir, concrete milestones, proof obligations, and resource gates.
+- [First-principles design](docs/design.md): harness, corpus, and certificate claims.
 - [Model architecture](docs/model-architecture.md): typed prediction, concrete
   networks, learning objectives, and resource requirements.
 - [Portable inference](docs/portable-inference.md): bit-level semantics,
